@@ -2,9 +2,10 @@
 
 import { useForm } from '@mantine/form';
 import { useState } from 'react';
-import { TextInput, PasswordInput, Button, Paper, Alert, Divider } from '@mantine/core';
-import { Mail, Lock, AlertCircle, Eye, EyeOff, Shield } from 'lucide-react';
+import { TextInput, PasswordInput, Button, Paper, Divider } from '@mantine/core';
+import { Mail, Lock, Eye, EyeOff, Shield } from 'lucide-react';
 import Link from 'next/link';
+import AuthService from '@/services/auth/authService';
 
 interface formValues {
   email: string;
@@ -17,7 +18,6 @@ const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,}$/;
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
   const form = useForm({
     validateInputOnChange: true,
@@ -43,27 +43,14 @@ export default function LoginPage() {
 
   const handleSubmit = async (values: formValues) => {
     setLoading(true);
-    setError('');
 
-    try {
-      // Simulate login request
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+    const { success } = await AuthService.login(values);
 
-      // Simulate error for demonstration
-      if (values.email !== 'admin@example.com' || values.password !== '123456') {
-        throw new Error('Incorrect email or password');
-      }
-
-      alert('Login successful!');
-    } catch (error) {
-      if (error instanceof Error) {
-        setError(error.message);
-      } else {
-        setError('An unknown error occurred');
-      }
-    } finally {
-      setLoading(false);
+    if (success) {
+      //TODO: Redirecionar para a página de URLs do usuário.
     }
+
+    setLoading(false);
   };
 
   return (
@@ -95,12 +82,6 @@ export default function LoginPage() {
           radius="lg"
           className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 shadow-2xl shadow-violet-500/10 dark:shadow-purple-500/10"
         >
-          {error && (
-            <Alert icon={<AlertCircle size={16} />} color="red" className="mb-6" variant="light" radius="md">
-              {error}
-            </Alert>
-          )}
-
           <form onSubmit={form.onSubmit((values) => handleSubmit(values))} className="space-y-4">
             <TextInput
               label="Email"
