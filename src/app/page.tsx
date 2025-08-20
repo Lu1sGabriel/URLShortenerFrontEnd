@@ -1,13 +1,15 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useForm } from '@mantine/form';
-import { useState } from 'react';
 import { TextInput, PasswordInput, Button, Paper, Divider } from '@mantine/core';
 import { Mail, Lock, Eye, EyeOff, Shield } from 'lucide-react';
 import Link from 'next/link';
-import AuthService from '@/services/auth/authService';
+import { useRouter } from 'next/navigation';
+import { useUser } from './context/user';
+import authService from '@/services/auth/authService';
 
-interface formValues {
+interface FormValues {
   email: string;
   password: string;
 }
@@ -18,8 +20,10 @@ const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,}$/;
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  const { isAuthenticated, refreshUser } = useUser();
 
-  const form = useForm({
+  const form = useForm<FormValues>({
     validateInputOnChange: true,
     initialValues: {
       email: '',
@@ -34,6 +38,7 @@ export default function LoginPage() {
       password: (value) => {
         if (!value) return 'Password is required';
         if (value.length < 6) return 'Password must be at least 6 characters';
+        if (value.includes('ç') || value.includes('Ç')) return 'Password cannot contain "ç" or "Ç"';
         if (!passwordRegex.test(value))
           return 'Password must include at least one uppercase letter, one lowercase letter, one number, and one special character.';
         return null;
@@ -41,17 +46,28 @@ export default function LoginPage() {
     },
   });
 
-  const handleSubmit = async (values: formValues) => {
+  const handleSubmit = async (values: FormValues) => {
     setLoading(true);
+    try {
+      const { success } = await authService.login(values);
 
-    const { success } = await AuthService.login(values);
-
-    if (success) {
-      //TODO: Redirecionar para a página de URLs do usuário.
+      if (success) {
+        // Apenas 1 fetch centralizado
+        await refreshUser();
+        router.push('/url');
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/url');
+    }
+  });
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative">
@@ -68,8 +84,8 @@ export default function LoginPage() {
       <div className="w-full max-w-md relative z-10">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-18 h-18 bg-gradient-to-br from-violet-600 to-purple-600 shadow-lg shadow-violet-500/25 rounded-xl mb-4">
-            <Shield className="w-12 h-12 text-white" />
+          <div className="inline-flex items-center justify-center w-12 h-12 2xl:w-18 2xl:h-18 bg-gradient-to-br from-violet-600 to-purple-600 shadow-lg shadow-violet-500/25 rounded-xl mb-4">
+            <Shield className="text-white" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-200 mb-2">Sign In</h1>
           <p className="text-gray-600 text-sm dark:text-gray-300">Access your account</p>
@@ -87,7 +103,7 @@ export default function LoginPage() {
               label="Email"
               placeholder="email@example.me"
               leftSection={<Mail size={16} className="text-gray-400" />}
-              size="md"
+              size="sm"
               radius="md"
               classNames={{
                 label: 'text-gray-700 dark:text-gray-200 py-2',
@@ -99,11 +115,14 @@ export default function LoginPage() {
               label="Password"
               placeholder="Type your password"
               leftSection={<Lock size={16} className="text-gray-400" />}
-              size="md"
+              size="sm"
               radius="md"
               visibilityToggleIcon={({ reveal }) => (reveal ? <EyeOff size={16} /> : <Eye size={16} />)}
               classNames={{
-                label: 'text-gray-700 dark:text-gray-200 py-2',
+                label: 'text-gray-700 dark:text-gray-200 font-medium py-2',
+                input:
+                  'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:border-violet-500 dark:focus:border-violet-400 text-gray-900 dark:text-gray-100 caret-gray-900 dark:caret-gray-100 [&>input]:text-gray-900 [&>input]:dark:text-gray-100 [&>input]:caret-gray-900 [&>input]:dark:caret-gray-100 [&>input]:bg-transparent',
+                innerInput: 'text-gray-900 dark:text-gray-100 caret-gray-900 dark:caret-gray-100 bg-transparent',
               }}
               {...form.getInputProps('password')}
             />
@@ -120,7 +139,7 @@ export default function LoginPage() {
             <Button
               fullWidth
               loading={loading}
-              size="md"
+              size="sm"
               radius="md"
               type="submit"
               className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 shadow-lg shadow-violet-500/25 h-11 transition-all duration-200"
