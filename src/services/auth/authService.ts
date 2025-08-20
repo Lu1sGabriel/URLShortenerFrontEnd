@@ -6,14 +6,19 @@ interface LoginRequest {
   password: string;
 }
 
+interface LoginRespose {
+  authenticated: boolean;
+  authorities: string[];
+}
+
 const BASE_URL = '/auth';
 
-const AuthService = {
-  login: (data: LoginRequest) => handleAsync(() => api.post(`${BASE_URL}/login`, data), 'Welcome back!'),
+const authService = {
+  login: (data: LoginRequest) => handleAsync(() => api.post<void>(`${BASE_URL}/login`, data), 'Welcome back!'),
 
-  logout: () => handleAsync(() => api.post(`${BASE_URL}/logout`, null), 'We hope to see you again!'),
+  logout: () => handleAsync(() => api.post<void>(`${BASE_URL}/logout`, null), 'We hope to see you again!'),
 
-  getAuthStatus: () => handleAsync(() => api.get(`${BASE_URL}/status`), false),
+  getAuthStatus: () => handleAsync(() => api.get<LoginRespose>(`${BASE_URL}/status`), false),
 };
 
-export default AuthService;
+export default authService;
