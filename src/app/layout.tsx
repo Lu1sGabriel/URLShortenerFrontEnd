@@ -5,6 +5,8 @@ import { ColorSchemeScript, MantineProvider, createTheme, mantineHtmlProps } fro
 import { SyncTheme } from '@/components/syncTheme';
 import { ToggleThemeButton } from '@/components/toglleThemebutton';
 import { Notifications } from '@mantine/notifications';
+import UserActionsMenu from '@/components/userActionsMenu';
+import { UserProvider } from './context/user';
 
 const theme = createTheme({});
 
@@ -17,10 +19,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="h-full">
         <MantineProvider theme={theme} defaultColorScheme="dark">
-          <Notifications />
-          <SyncTheme />
-          <ToggleThemeButton />
-          {children}
+          <UserProvider>
+            <Notifications />
+            <SyncTheme />
+            <UserActionsMenu />
+            <ToggleThemeButton />
+            {children}
+          </UserProvider>
         </MantineProvider>
       </body>
     </html>
