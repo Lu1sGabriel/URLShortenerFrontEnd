@@ -1,12 +1,15 @@
 'use client';
 
+import { TextInput, PasswordInput, Button, Paper, Divider } from '@mantine/core';
 import { useForm } from '@mantine/form';
-import { useState } from 'react';
-import { TextInput, PasswordInput, Button, Paper, Alert, Divider } from '@mantine/core';
-import { Mail, Lock, AlertCircle, Eye, EyeOff, Shield, User } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Mail, Lock, Eye, EyeOff, Shield, User } from 'lucide-react';
 import Link from 'next/link';
+import userService from '@/services/user/userService';
+import { useUser } from '../context/user';
+import { useRouter } from 'next/navigation';
 
-interface formValues {
+interface FormValues {
   name: string;
   email: string;
   password: string;
@@ -19,9 +22,10 @@ const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,}$/;
 
 export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const router = useRouter();
+  const { isAuthenticated } = useUser();
 
-  const form = useForm({
+  const form = useForm<FormValues>({
     validateInputOnChange: true,
     initialValues: {
       name: '',
@@ -43,6 +47,7 @@ export default function RegisterPage() {
       password: (value) => {
         if (!value) return 'Password is required';
         if (value.length < 8) return 'Password must be at least 8 characters';
+        if (value.includes('ç') || value.includes('Ç')) return 'Password cannot contain "ç" or "Ç"';
         if (!passwordRegex.test(value))
           return 'Password must include at least one uppercase letter, one lowercase letter, one number, and one special character.';
         return null;
@@ -55,30 +60,22 @@ export default function RegisterPage() {
     },
   });
 
-  const handleSubmit = async (values: formValues) => {
+  const handleSubmit = async (values: FormValues) => {
     setLoading(true);
-    setError('');
+    const { success } = await userService.create(values);
 
-    try {
-      // Simulate register request
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      // Simulate error for demonstration - check if email already exists
-      if (values.email === 'admin@example.com') {
-        throw new Error('Email already exists');
-      }
-
-      alert('Account created successfully!');
-    } catch (error) {
-      if (error instanceof Error) {
-        setError(error.message);
-      } else {
-        setError('An unknown error occurred');
-      }
-    } finally {
-      setLoading(false);
+    if (success) {
+      router.push('/');
     }
+
+    setLoading(false);
   };
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/url');
+    }
+  }, [isAuthenticated, router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative">
@@ -109,12 +106,6 @@ export default function RegisterPage() {
           radius="lg"
           className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 shadow-2xl shadow-violet-500/10 dark:shadow-purple-500/10"
         >
-          {error && (
-            <Alert icon={<AlertCircle size={16} />} color="red" className="mb-6" variant="light" radius="md">
-              {error}
-            </Alert>
-          )}
-
           <form onSubmit={form.onSubmit((values) => handleSubmit(values))} className="space-y-4">
             <TextInput
               label="Name"
@@ -148,7 +139,10 @@ export default function RegisterPage() {
               radius="md"
               visibilityToggleIcon={({ reveal }) => (reveal ? <EyeOff size={16} /> : <Eye size={16} />)}
               classNames={{
-                label: 'text-gray-700 dark:text-gray-200 py-2',
+                label: 'text-gray-700 dark:text-gray-200 font-medium py-2',
+                input:
+                  'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:border-violet-500 dark:focus:border-violet-400 text-gray-900 dark:text-gray-100 caret-gray-900 dark:caret-gray-100 [&>input]:text-gray-900 [&>input]:dark:text-gray-100 [&>input]:caret-gray-900 [&>input]:dark:caret-gray-100 [&>input]:bg-transparent',
+                innerInput: 'text-gray-900 dark:text-gray-100 caret-gray-900 dark:caret-gray-100 bg-transparent',
               }}
               {...form.getInputProps('password')}
             />
@@ -161,7 +155,10 @@ export default function RegisterPage() {
               radius="md"
               visibilityToggleIcon={({ reveal }) => (reveal ? <EyeOff size={16} /> : <Eye size={16} />)}
               classNames={{
-                label: 'text-gray-700 dark:text-gray-200 py-2',
+                label: 'text-gray-700 dark:text-gray-200 font-medium py-2',
+                input:
+                  'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:border-violet-500 dark:focus:border-violet-400 text-gray-900 dark:text-gray-100 caret-gray-900 dark:caret-gray-100 [&>input]:text-gray-900 [&>input]:dark:text-gray-100 [&>input]:caret-gray-900 [&>input]:dark:caret-gray-100 [&>input]:bg-transparent',
+                innerInput: 'text-gray-900 dark:text-gray-100 caret-gray-900 dark:caret-gray-100 bg-transparent',
               }}
               {...form.getInputProps('confirmPassword')}
             />
